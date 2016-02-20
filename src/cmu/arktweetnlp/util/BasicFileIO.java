@@ -1,22 +1,22 @@
 package cmu.arktweetnlp.util;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+
 import java.io.*;
 import java.nio.charset.Charset;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonParser;
+import static java.lang.String.format;
 
 /**
- * 
  * @author Dipanjan Das
- *
  */
 public class BasicFileIO {
-	// taken from Dipanjan's codebase
-	
+    // taken from Dipanjan's codebase
+
 
     /*
      * A logger for the class.
@@ -40,6 +40,7 @@ public class BasicFileIO {
         }
         return null;
     }
+
     public static BufferedReader openFileToReadUTF8(String file) {
         try {
             BufferedReader bReader = null;
@@ -58,6 +59,7 @@ public class BasicFileIO {
         }
         return null;
     }
+
     public static BufferedWriter openFileToWrite(String file) {
         try {
             BufferedWriter bWriter = null;
@@ -75,6 +77,7 @@ public class BasicFileIO {
         }
         return null;
     }
+
     public static BufferedWriter openFileToWriteUTF8(String file) {
         try {
             BufferedWriter bWriter = null;
@@ -83,7 +86,7 @@ public class BasicFileIO {
                         new GZIPOutputStream(new FileOutputStream(file)), "UTF-8"));
             } else {
                 bWriter = new BufferedWriter(new OutputStreamWriter(
-                	    new FileOutputStream(file), "UTF-8"));
+                        new FileOutputStream(file), "UTF-8"));
             }
             return bWriter;
         } catch (IOException e) {
@@ -93,6 +96,7 @@ public class BasicFileIO {
         }
         return null;
     }
+
     public static void closeFileAlreadyRead(BufferedReader bReader) {
         try {
             bReader.close();
@@ -117,7 +121,7 @@ public class BasicFileIO {
         try {
             String line = bReader.readLine();
             return line;
-        } catch(IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
             log.severe("Could not read line from file.");
             System.exit(-1);
@@ -128,39 +132,38 @@ public class BasicFileIO {
     public static String getLine(JsonParser jParse) {
         //returns the next "text" field or null if none left
         try {
-            while(jParse.getText()!=null){
+            while (jParse.getText() != null) {
                 if ("hashtags".equals(jParse.getCurrentName())
-                        |"retweeted_status".equals(jParse.getCurrentName())) {
+                        | "retweeted_status".equals(jParse.getCurrentName())) {
                     jParse.nextToken();
                     jParse.skipChildren();
-                }				
+                }
                 if ("text".equals(jParse.getCurrentName())) {
                     jParse.nextToken(); // move to value
                     String tweet = jParse.getText();
                     jParse.nextToken();
-                    if(tweet.length()>0) //because tagger crashes on 0-length tweets
+                    if (tweet.length() > 0) //because tagger crashes on 0-length tweets
                         return tweet;
                 }
                 jParse.nextToken();
             }
-        } catch(JsonParseException e){
+        } catch (JsonParseException e) {
             e.printStackTrace();
             log.severe("Error parsing JSON.");
-            System.exit(-1);			  
-        }
-        catch(IOException e) {
+            System.exit(-1);
+        } catch (IOException e) {
             e.printStackTrace();
             log.severe("Could not read line from file.");
             System.exit(-1);
         }
 
-        return null;	//jParse is null (EOF)	
+        return null;    //jParse is null (EOF)
     }
 
     public static void writeLine(BufferedWriter bWriter, String line) {
         try {
             bWriter.write(line + "\n");
-        } catch(IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
             log.severe("Could not write line to file.");
             System.exit(-1);
@@ -168,23 +171,22 @@ public class BasicFileIO {
     }
 
     public static void writeSerializedObject(String file, Object object) {
-        try{
+        try {
             OutputStream oFile = new FileOutputStream(file);
             OutputStream buffer = new BufferedOutputStream(oFile);
             ObjectOutput output = new ObjectOutputStream(buffer);
-            try{
+            try {
                 output.writeObject(object);
-            }
-            finally{
+            } finally {
                 output.close();
             }
-        }
-        catch(IOException ex){
+        } catch (IOException ex) {
             log.severe("Cannot perform output.");
             ex.printStackTrace();
             System.exit(-1);
         }
     }
+
     public static Object readSerializedObject(String file) {
         try {
             return readSerializedObject(new FileInputStream(file));
@@ -196,58 +198,58 @@ public class BasicFileIO {
 
     public static Object readSerializedObject(InputStream iFile) {
         Object object = null;
-        try{
+        try {
             InputStream buffer = new BufferedInputStream(iFile);
             ObjectInput input = new ObjectInputStream(buffer);
-            try{
+            try {
                 object = input.readObject();
-            }
-            finally{
+            } finally {
                 input.close();
             }
-        }
-        catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
             log.severe("Cannot perform input.");
             throw new RuntimeException(e);
-        }
-        catch(IOException ex){
+        } catch (IOException ex) {
             log.severe("Cannot perform input.");
             throw new RuntimeException(ex);
         }
         return object;
     }
-    
-    
-	/**
-	 * Please only use absolute paths, e.g. /cmu/arktweetnlp/6mpaths
-	 * 
-	 * e.g. http://stackoverflow.com/questions/1464291/how-to-really-read-text-file-from-classpath-in-java
-	 * 
-	 * (added by Brendan 2012-08-14)
-	 * @throws IOException 
-	 */
-	public static BufferedReader getResourceReader(String resourceName) throws IOException {
-		assert resourceName.startsWith("/") : "Absolute path needed for resource";
-		
-		InputStream stream = BasicFileIO.class.getResourceAsStream(resourceName);
-		if (stream == null) throw new IOException("failed to find resource " + resourceName);
-		//read in paths file
-		BufferedReader bReader = new BufferedReader(new InputStreamReader(
-			stream, Charset.forName("UTF-8")));
-		return bReader;
-	}
-	
-	/** Try to get a file, if it doesn't exist, backoff to a resource. 
-	 * @throws IOException **/
-	public static BufferedReader openFileOrResource(String fileOrResource) throws IOException {
-		try {
-			if (new File(fileOrResource).exists()) {
-				return openFileToReadUTF8(fileOrResource);
-			} else {
-				return getResourceReader(fileOrResource);
-			}			
-		} catch (IOException e) {
-			throw new IOException("Neither file nor resource found for: " + fileOrResource);
-		}
-	}
+
+
+    /**
+     * Please only use absolute paths, e.g. /cmu/arktweetnlp/6mpaths
+     * <p>
+     * e.g. http://stackoverflow.com/questions/1464291/how-to-really-read-text-file-from-classpath-in-java
+     * <p>
+     * (added by Brendan 2012-08-14)
+     *
+     * @throws IOException
+     */
+    public static BufferedReader getResourceReader(String resourceName) throws IOException {
+        if (!resourceName.startsWith("/"))
+            throw new IllegalArgumentException(format("Absolute path needed for resource %s", resourceName));
+
+        InputStream stream = BasicFileIO.class.getResourceAsStream(resourceName);
+        if (stream == null) throw new IOException("failed to find resource " + resourceName);
+        //read in paths file
+        return new BufferedReader(new InputStreamReader(stream, Charset.forName("UTF-8")));
+    }
+
+    /**
+     * Try to get a file, if it doesn't exist, backoff to a resource.
+     *
+     * @throws IOException
+     **/
+    public static BufferedReader openFileOrResource(String fileOrResource) throws IOException {
+        try {
+            if (new File(fileOrResource).exists()) {
+                return openFileToReadUTF8(fileOrResource);
+            } else {
+                return getResourceReader(fileOrResource);
+            }
+        } catch (IOException e) {
+            throw new IOException("Neither file nor resource found for: " + fileOrResource);
+        }
+    }
 }
